@@ -10,6 +10,7 @@ import (
 	"math/rand"
 
 	"github.com/nlopes/slack"
+	"github.com/oxisto/know-it-all/wikipedia"
 )
 
 type Something struct {
@@ -131,21 +132,25 @@ func locationCommand(something Something) {
 	// find some more details
 	details, err := PlaceDetail(result.PlaceID)
 
-	/*fields := []slack.AttachmentField{
-	{
-	//Value: strings.Join(details.HTMLAttributions, ""),
-	}}*/
+	intro, err := wikipedia.FetchIntro(details.Name)
+	if err != nil {
+		fmt.Printf("Could not fetch intro from Wikipedia from %s: %s\n", details.Name, err)
+	}
 
 	attachment := slack.Attachment{
 		Color:     "#B733FF",
 		Title:     details.Name,
 		TitleLink: details.URL,
-		//Fields:    fields,
 		ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?center=%f,%f&size=640x400&zoom=9&markers=color:red|label:|%f,%f&key=%s",
 			result.Geometry.Location.Lat,
 			result.Geometry.Location.Lng,
 			result.Geometry.Location.Lat,
 			result.Geometry.Location.Lng, state.GoogleApiKey),
+	}
+
+	if intro != "" {
+		attachment.Text = fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", details.Name)
+		attachment.MarkdownIn = []string{"text"}
 	}
 
 	params := slack.PostMessageParameters{}
