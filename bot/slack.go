@@ -17,25 +17,28 @@ type Something struct {
 	Msg     slack.Msg
 }
 
-var (
-	replyChannel chan Something
-	api          *slack.Client
-	botId        string
-)
+type State struct {
+	GoogleApiKey       string
+	DirectMessagesOnly bool
+	BotId              string
+	ReplyChannel       chan Something
+}
 
-var googleApiKey string
+var state *State
+var api *slack.Client
 
-func Bot(token string, apiKey string) {
-	googleApiKey = apiKey
+func InitBot(token string, directMessagesOnly bool, apiKey string) {
+	state = &State{
+		GoogleApiKey:       apiKey,
+		DirectMessagesOnly: directMessagesOnly,
+	}
 
 	fmt.Println("Connecting to Slack...")
 
 	api = slack.New(token)
 
-	replyChannel = make(chan Something)
+	state.ReplyChannel = make(chan Something)
 	go handleBotReply()
-
-	//api.SendMessage("#eve", slack.MsgOptionText("EVE Corpus2 Server has started.", false), slack.MsgOptionPost(), slack.MsgOptionAsUser(true))
 
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
@@ -45,18 +48,16 @@ func Bot(token string, apiKey string) {
 		case msg := <-rtm.IncomingEvents:
 			switch ev := msg.Data.(type) {
 			case *slack.ConnectedEvent:
-				botId = ev.Info.User.ID
-				fmt.Printf("Connected to Slack using %s\n", botId)
-			case *slack.TeamJoinEvent:
-				// Handle new user to client
+				state.BotId = ev.Info.User.ID
+				fmt.Printf("Connected to Slack as %s\n", state.BotId)
 			case *slack.MessageEvent:
 				something := Something{
 					Msg:     ev.Msg,
 					Channel: ev.Channel,
 				}
 
-				if ev.Msg.User != botId {
-					replyChannel <- something
+				if ev.Msg.User != state.BotId && (!state.DirectMessagesOnly || state.DirectMessagesOnly && strings.HasPrefix(ev.Channel, "D")) {
+					state.ReplyChannel <- something
 				}
 			case *slack.ReactionAddedEvent:
 				// Handle reaction added
@@ -71,7 +72,7 @@ func Bot(token string, apiKey string) {
 
 func handleBotReply() {
 	for {
-		something := <-replyChannel
+		something := <-state.ReplyChannel
 
 		text := strings.ToLower(something.Msg.Text)
 
@@ -144,7 +145,7 @@ func locationCommand(something Something) {
 			result.Geometry.Location.Lat,
 			result.Geometry.Location.Lng,
 			result.Geometry.Location.Lat,
-			result.Geometry.Location.Lng, googleApiKey),
+			result.Geometry.Location.Lng, state.GoogleApiKey),
 	}
 
 	params := slack.PostMessageParameters{}
@@ -159,7 +160,7 @@ func locationCommand(something Something) {
 			Title: fmt.Sprintf("Impressionen aus %s", details.Name),
 			ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=%s&key=%s",
 				details.Photos[rand.Int31n(int32(len(details.Photos)))].PhotoReference,
-				googleApiKey),
+				state.GoogleApiKey),
 		}
 
 		params := slack.PostMessageParameters{}

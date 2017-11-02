@@ -21,7 +21,7 @@ spec:
             secretKeyRef:
               name: know-it-all-secret
               key: slack-api-token
-        - name: SLACK_API_TOKEN
+        - name: GOOGLE_API_KEY
           valueFrom:
             secretKeyRef:
               name: know-it-all-secret
