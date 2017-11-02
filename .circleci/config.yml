@@ -65,7 +65,7 @@ jobs:
           name: Set image to current build
           command: |
             export TAG="$(cat /tmp/workspace/tag.txt)"
-            ./kubectl set image deployment know-it-all server=oxisto/know-it-all:$TAG
+            ./kubectl set image deployment know-it-all know-it-all=oxisto/know-it-all:$TAG
 workflows:
   version: 2
   build-test-and-deploy:
