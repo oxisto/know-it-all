@@ -18,8 +18,8 @@ const (
 
 var botCmd = &cobra.Command{
 	Use:   "know-it-all",
-	Short: "know-it-all is a knowledgeable Slack bot",
-	Long:  "know-it-all is a knowledgeable Slack bot. It it almost annoying.",
+	Short: "KnowItAll is a knowledgeable Slack bot",
+	Long:  "KnowItAll is a knowledgeable Slack bot. It it almost annoying.",
 	Run:   doCmd,
 }
 
