@@ -132,7 +132,7 @@ func locationCommand(something Something) {
 	// find some more details
 	details, err := PlaceDetail(result.PlaceID)
 
-	intro, pageId, err := wikipedia.FetchIntro(details.Name)
+	intro, _, err := wikipedia.FetchIntro(details.Name)
 	if err != nil {
 		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
 	}
