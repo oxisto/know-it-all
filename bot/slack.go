@@ -132,9 +132,9 @@ func locationCommand(something Something) {
 	// find some more details
 	details, err := PlaceDetail(result.PlaceID)
 
-	intro, err := wikipedia.FetchIntro(details.Name)
+	intro, pageId, err := wikipedia.FetchIntro(details.Name)
 	if err != nil {
-		fmt.Printf("Could not fetch intro from Wikipedia from %s: %s\n", details.Name, err)
+		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
 	}
 
 	attachment := slack.Attachment{
