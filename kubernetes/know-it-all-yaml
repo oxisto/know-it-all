@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: know-it-all
+  name: know-it-all
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: know-it-all
+  template:
+    metadata:
+      labels:
+        app: know-it-all
+    spec:
+      containers:
+      - env:
+        - name: SLACK_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: know-it-all-secret
+              key: slack-api-token
+        - name: SLACK_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: know-it-all-secret
+              key: google-api-key
+        image: oxisto/know-it-all
+        imagePullPolicy: Always
+        name: know-it-all
+      imagePullSecrets:
+      - name: registry-secret
