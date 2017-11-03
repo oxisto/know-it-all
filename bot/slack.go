@@ -75,56 +75,102 @@ func handleBotReply() {
 	for {
 		something := <-state.ReplyChannel
 
-		// TODO: already tokenize here, look for keywords and pass tokenized words to command functions
-		locationCommand(something)
+		tokens := TokenizeAndNormalize(something.Msg.Text)
+
+		if index := tokens.ContainsWord("wo"); index != -1 {
+			locationCommand(something.Channel, tokens, index)
+		}
 	}
 }
 
-func locationCommand(something Something) {
-	marks := []string{",", ".", "!", ":", "?"}
-	fillerWords := map[string]bool{"liegt": true, "ist": true, "bitte": true, "danke": true, "sind": true}
+type Tokens []string
+type Token string
+type InvertedIndex map[string][]int
 
-	command := strings.ToLower(something.Msg.Text)
+func TokenizeAndNormalize(message string) Tokens {
+	marks := []string{",", ".", "!", ":", "?"}
+	fillerWords := []string{"eigentlich", "ist", "bitte", "danke", "sind", "der", "die", "das"}
+
+	message = strings.ToLower(message)
 
 	// first, remove all punctuation marks
 	for _, mark := range marks {
-		command = strings.Replace(command, mark, "", -1)
+		message = strings.Replace(message, mark, "", -1)
 	}
 
-	// next, tokenize it and remove all filler words and re-assemble the rest after the keyword was found
-	tokens := strings.Split(command, " ")
-	typeNameTokens := []string{}
-	keywordFound := false
-	keyword := "wo"
-	for _, token := range tokens {
-		if token == keyword {
-			keywordFound = true
-			continue
-		}
+	// next, tokenize it and remove all filler words
+	tokens := Tokens(strings.Split(message, " "))
 
-		if fillerWords[token] {
-			continue
-		}
+	// this inverted index contains all tokens as well as their position in the original sentence
+	idx := tokens.BuildInvertedIndex()
 
-		if keywordFound {
-			typeNameTokens = append(typeNameTokens, token)
+	fmt.Println(idx)
+	fmt.Println(tokens)
+
+	// remove filler words
+	for _, word := range fillerWords {
+		if positions := idx[word]; positions != nil {
+			for _, position := range positions {
+				// not the best, but the easiest solution, empty tokens should be ignored later on
+				tokens[position] = ""
+			}
 		}
 	}
 
-	if !keywordFound {
+	return tokens
+}
+
+func (tokens Tokens) BuildInvertedIndex() InvertedIndex {
+	invertedIndex := InvertedIndex{}
+
+	// build the reverse index
+	for i, token := range tokens {
+		// if the token already exists in the index, add the position
+		if positions := invertedIndex[token]; positions != nil {
+			positions = append(positions, i)
+		} else {
+			invertedIndex[token] = []int{i}
+		}
+	}
+
+	return invertedIndex
+}
+
+func (tokens Tokens) ContainsWord(word string) (index int) {
+	index = -1
+	for i, w := range tokens {
+		if w == word {
+			index = i
+			break
+		}
+	}
+
+	return index
+}
+
+func (tokens Tokens) Reassemble() string {
+	// get rid of extra whitespaces that originally were filler words
+	return strings.Trim(strings.Replace(strings.Join(tokens, " "), "  ", " ", -1), " ")
+}
+
+func locationCommand(channel string, tokens Tokens, index int) {
+	fmt.Println("Triggering location command...")
+
+	locationName := tokens[index+1:].Reassemble()
+
+	if locationName == "" {
+		// just ignore it
 		return
 	}
 
-	fmt.Println("Triggering location command...")
-
-	locationName := strings.Join(typeNameTokens, " ")
+	fmt.Printf("Trying to locate %s...\n", locationName)
 
 	results, err := Geocode(locationName)
 	if err != nil {
-		replyWithError(something.Channel, err)
+		replyWithError(channel, err)
 		return
 	} else if len(results) == 0 {
-		replyWithError(something.Channel, errors.New(fmt.Sprintf("Sorry, konnte %s nicht finden.", locationName)))
+		replyWithError(channel, errors.New(fmt.Sprintf("Sorry, konnte %s nicht finden.", locationName)))
 		return
 	}
 
@@ -159,7 +205,7 @@ func locationCommand(something Something) {
 	params.AsUser = true
 	params.Attachments = []slack.Attachment{attachment}
 
-	api.PostMessage(something.Channel, "", params)
+	api.PostMessage(channel, "", params)
 
 	if len(details.Photos) > 0 {
 		attachment = slack.Attachment{
@@ -174,7 +220,7 @@ func locationCommand(something Something) {
 		params.AsUser = true
 		params.Attachments = []slack.Attachment{attachment}
 
-		api.PostMessage(something.Channel, "", params)
+		api.PostMessage(channel, "", params)
 	}
 }
 
