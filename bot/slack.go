@@ -75,8 +75,6 @@ func handleBotReply() {
 	for {
 		something := <-state.ReplyChannel
 
-		text := strings.ToLower(something.Msg.Text)
-
 		// TODO: already tokenize here, look for keywords and pass tokenized words to command functions
 		locationCommand(something)
 	}
