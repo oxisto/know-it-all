@@ -15,4 +15,5 @@
 
 # vendor deps
 vendor
+.idea
 

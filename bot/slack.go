@@ -77,10 +77,8 @@ func handleBotReply() {
 
 		text := strings.ToLower(something.Msg.Text)
 
-		if strings.Contains(text, "wo") {
-			fmt.Println("Triggering location command...")
-			locationCommand(something)
-		}
+		// TODO: already tokenize here, look for keywords and pass tokenized words to command functions
+		locationCommand(something)
 	}
 }
 
@@ -114,6 +112,12 @@ func locationCommand(something Something) {
 			typeNameTokens = append(typeNameTokens, token)
 		}
 	}
+
+	if !keywordFound {
+		return
+	}
+
+	fmt.Println("Triggering location command...")
 
 	locationName := strings.Join(typeNameTokens, " ")
 
