@@ -78,7 +78,7 @@ func handleBotReply() {
 		tokens := TokenizeAndNormalize(something.Msg.Text)
 
 		if index := tokens.ContainsWord("wo"); index != -1 {
-			locationCommand(something.Channel, tokens, index)
+			locationCommand(something, tokens, index)
 		}
 	}
 }
@@ -89,7 +89,7 @@ type InvertedIndex map[string][]int
 
 func TokenizeAndNormalize(message string) Tokens {
 	marks := []string{",", ".", "!", ":", "?"}
-	fillerWords := []string{"eigentlich", "ist", "bitte", "danke", "sind", "der", "die", "das"}
+	fillerWords := []string{"eigentlich", "ist", "bitte", "danke", "sind", "der", "die", "das", "ein", "denn"}
 
 	message = strings.ToLower(message)
 
@@ -103,9 +103,6 @@ func TokenizeAndNormalize(message string) Tokens {
 
 	// this inverted index contains all tokens as well as their position in the original sentence
 	idx := tokens.BuildInvertedIndex()
-
-	fmt.Println(idx)
-	fmt.Println(tokens)
 
 	// remove filler words
 	for _, word := range fillerWords {
@@ -153,7 +150,7 @@ func (tokens Tokens) Reassemble() string {
 	return strings.Trim(strings.Replace(strings.Join(tokens, " "), "  ", " ", -1), " ")
 }
 
-func locationCommand(channel string, tokens Tokens, index int) {
+func locationCommand(something Something, tokens Tokens, index int) {
 	fmt.Println("Triggering location command...")
 
 	locationName := tokens[index+1:].Reassemble()
@@ -167,10 +164,10 @@ func locationCommand(channel string, tokens Tokens, index int) {
 
 	results, err := Geocode(locationName)
 	if err != nil {
-		replyWithError(channel, err)
+		replyWithError(something, err)
 		return
 	} else if len(results) == 0 {
-		replyWithError(channel, errors.New(fmt.Sprintf("Sorry, konnte %s nicht finden.", locationName)))
+		replyWithError(something, errors.New(fmt.Sprintf("No results for '%s'.", locationName)))
 		return
 	}
 
@@ -179,6 +176,10 @@ func locationCommand(channel string, tokens Tokens, index int) {
 
 	// find some more details
 	details, err := PlaceDetail(result.PlaceID)
+	if err != nil {
+		fmt.Printf("Could not fetch place detail for %d: %s\n", result.PlaceID, err)
+		return
+	}
 
 	intro, _, err := wikipedia.FetchIntro(details.Name)
 	if err != nil {
@@ -205,7 +206,7 @@ func locationCommand(channel string, tokens Tokens, index int) {
 	params.AsUser = true
 	params.Attachments = []slack.Attachment{attachment}
 
-	api.PostMessage(channel, "", params)
+	api.PostMessage(something.Channel, "", params)
 
 	if len(details.Photos) > 0 {
 		attachment = slack.Attachment{
@@ -220,10 +221,16 @@ func locationCommand(channel string, tokens Tokens, index int) {
 		params.AsUser = true
 		params.Attachments = []slack.Attachment{attachment}
 
-		api.PostMessage(channel, "", params)
+		api.PostMessage(something.Channel, "", params)
 	}
 }
 
-func replyWithError(channel string, err error) {
-	api.SendMessage(channel, slack.MsgOptionText(fmt.Sprintf("Does not compute: %s", err), false), slack.MsgOptionPost(), slack.MsgOptionAsUser(true))
+func replyWithError(something Something, err error) {
+	fmt.Printf("An error occured: %s\n", err)
+
+	itemRef := slack.NewRefToMessage(something.Channel, something.Msg.Timestamp)
+
+	if err := api.AddReaction("question", itemRef); err != nil {
+		fmt.Printf("An error occured while adding the reaction: %s\n", err)
+	}
 }
