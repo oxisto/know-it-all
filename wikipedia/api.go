@@ -75,19 +75,19 @@ func FetchInfoBox(pageId int) (map[string]string, error) {
 	}
 }
 
-func FetchIntro(page string) (string, int, error) {
+func FetchIntro(page string) (string, *PageExtract, error) {
 	u := fmt.Sprintf("https://de.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro=&explaintext=&titles=%s", url.PathEscape(page))
 
 	res, err := http.Get(u)
 	if err != nil {
-		return "", -1, err
+		return "", nil, err
 	}
 
 	response := QueryResponse{}
 
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return "", -1, err
+		return "", nil, err
 	}
 
 	keys := reflect.ValueOf(response.Query.Pages).MapKeys()
@@ -95,5 +95,5 @@ func FetchIntro(page string) (string, int, error) {
 
 	intro := strings.Split(extract.Extract, "\n")[0]
 
-	return intro, extract.PageID, nil
+	return intro, &extract, nil
 }

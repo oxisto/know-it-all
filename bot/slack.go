@@ -79,6 +79,8 @@ func handleBotReply() {
 
 		if index := tokens.ContainsWord("wo"); index != -1 {
 			locationCommand(something, tokens, index)
+		} else if index := tokens.ContainsWord("was"); index != -1 {
+			lookupCommand(something, tokens, index)
 		}
 	}
 }
@@ -150,6 +152,38 @@ func (tokens Tokens) Reassemble() string {
 	return strings.Trim(strings.Replace(strings.Join(tokens, " "), "  ", " ", -1), " ")
 }
 
+func lookupCommand(something Something, tokens Tokens, index int) {
+	fmt.Println("Triggering lookup command...")
+
+	thing := tokens[index+1:].Reassemble()
+
+	if thing == "" {
+		// just ignore it
+		return
+	}
+
+	fmt.Printf("Trying to lookup %s...\n", thing)
+
+	intro, extract, err := wikipedia.FetchIntro(thing)
+	if err != nil {
+		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", thing, err)
+	}
+
+	attachment := slack.Attachment{
+		Color:     "#B733FF",
+		Title:     extract.Title,
+		TitleLink: fmt.Sprintf("https://de.wikipedia.org/wiki/%s", extract.Title),
+		Text: fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", extract.Title),
+		MarkdownIn: []string{"text"},
+	}
+
+	params := slack.PostMessageParameters{}
+	params.AsUser = true
+	params.Attachments = []slack.Attachment{attachment}
+
+	api.PostMessage(something.Channel, "", params)
+}
+
 func locationCommand(something Something, tokens Tokens, index int) {
 	fmt.Println("Triggering location command...")
 
@@ -181,7 +215,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		return
 	}
 
-	intro, _, err := wikipedia.FetchIntro(details.Name)
+	intro, extract, err := wikipedia.FetchIntro(details.Name)
 	if err != nil {
 		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
 	}
@@ -198,7 +232,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	}
 
 	if intro != "" {
-		attachment.Text = fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", details.Name)
+		attachment.Text = fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", extract.Title)
 		attachment.MarkdownIn = []string{"text"}
 	}
 
