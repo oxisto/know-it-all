@@ -3,9 +3,9 @@ package google
 import (
 	"fmt"
 
-	"golang.org/x/net/context"
 	"googlemaps.github.io/maps"
 	"net/url"
+	"context"
 )
 
 var c *maps.Client
@@ -25,9 +25,23 @@ func InitAPI(apiKey string) {
 }
 
 func Geocode(address string) ([]maps.GeocodingResult, error) {
+	// statically center around Munich for now
+	bounds := maps.LatLngBounds{
+		NorthEast: maps.LatLng{
+			Lat: 48.2436429,
+			Lng: 11.7890959,
+		},
+		SouthWest: maps.LatLng{
+			Lat: 48.0638393,
+			Lng: 11.3154977,
+		},
+	}
+
 	r := &maps.GeocodingRequest{
 		Address:  address,
+		Region: "de",
 		Language: "de",
+		Bounds: &bounds,
 	}
 
 	return c.Geocode(context.Background(), r)
