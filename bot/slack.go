@@ -269,12 +269,22 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	api.PostMessage(something.Channel, "", params)
 
 	if len(details.Photos) > 0 {
+		actions := []slack.AttachmentAction{
+			{
+				Name: "next",
+				Text: "Nächstes Bild",
+				Type: "button",
+			},
+		}
+
 		attachment = slack.Attachment{
 			Color: "#B733FF",
 			Title: fmt.Sprintf("Impressionen aus %s", details.Name),
 			ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=%s&key=%s",
 				details.Photos[rand.Int31n(int32(len(details.Photos)))].PhotoReference,
 				state.GoogleApiKey),
+			CallbackID: "test",
+			Actions: actions,
 		}
 
 		params := slack.PostMessageParameters{}

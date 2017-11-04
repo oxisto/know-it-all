@@ -31,3 +31,35 @@ spec:
         name: know-it-all
       imagePullSecrets:
       - name: registry-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: know-it-all
+spec:
+  ports:
+  - port: 4300
+    protocol: TCP
+    targetPort: 4300
+  selector:
+    app: know-it-all
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  name: know-it-all
+spec:
+  rules:
+  - host: know-it-all.aybaze.com
+    http:
+      paths:
+      - backend:
+          serviceName: know-it-all
+          servicePort: 4300
+        path: /
+  tls:
+  - hosts:
+    - know-it-all.aybaze.com
+    secretName: know-it-all-tls
