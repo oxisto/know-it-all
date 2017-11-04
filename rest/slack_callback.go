@@ -2,7 +2,6 @@ package rest
 
 import (
 	"net/http"
-	"net/http/httputil"
 	"fmt"
 	"encoding/json"
 	"github.com/nlopes/slack"
@@ -33,21 +32,11 @@ func JsonResponse(w http.ResponseWriter, r *http.Request, object interface{}, er
 }
 
 func MorePhotos(w http.ResponseWriter, r *http.Request) {
-	// Save a copy of this request for debugging.
-	requestDump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		JsonResponse(w, r, nil, err)
-		return
-	}
-	fmt.Println(string(requestDump))
-
 	payload := r.FormValue("payload")
-
-	fmt.Println(payload)
 
 	callback := slack.AttachmentActionCallback{} //map[string]interface{}{}
 
-	err = json.Unmarshal([]byte(payload), &callback)
+	err := json.Unmarshal([]byte(payload), &callback)
 
 	if err != nil {
 		JsonResponse(w, r, nil, err)
