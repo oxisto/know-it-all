@@ -6,6 +6,7 @@ import (
 	"googlemaps.github.io/maps"
 	"net/url"
 	"context"
+	"strconv"
 )
 
 var c *maps.Client
@@ -55,12 +56,14 @@ func PlaceDetail(placeID string) (maps.PlaceDetailsResult, error) {
 	return c.PlaceDetails(context.Background(), r)
 }
 
-func StaticMapUrl(location maps.LatLng) string {
+func StaticMapUrl(location maps.LatLng, zoom int) string {
 	center := fmt.Sprintf("%f,%f", location.Lat, location.Lng)
 
 	query := url.Values{}
 	query.Set("center", center)
-	query.Set("zoom", "9")
+	if zoom != -1 {
+		query.Set("zoom", strconv.Itoa(zoom))
+	}
 	query.Set("markers", fmt.Sprintf("color:red|label:|%s", center))
 	query.Set("size", "640x480")
 	query.Set("key", key)

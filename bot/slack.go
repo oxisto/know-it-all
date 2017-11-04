@@ -220,7 +220,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		return
 	}
 
-	fmt.Printf("Trying to locate %s...\n",locationName)
+	fmt.Printf("Trying to locate %s...\n", locationName)
 
 	results, err := google.Geocode(locationName)
 	if err != nil {
@@ -241,22 +241,44 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		return
 	}
 
-	intro, extract, err := wikipedia.FetchIntro(details.Name)
-	if err != nil {
-		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
-	}
-
 	attachment := slack.Attachment{
 		Color:     "#B733FF",
 		Title:     details.Name,
 		TitleLink: details.URL,
-		ImageURL:  google.StaticMapUrl(result.Geometry.Location),
 	}
 
-	if intro != "" {
-		attachment.Text = fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", extract.Title)
-		attachment.MarkdownIn = []string{"text"}
+	// no zoom per default
+	var zoom = -1
+	if ContainsType(details.Types, "political") {
+		// fetch intro from Wikipedia
+		intro, extract, err := wikipedia.FetchIntro(details.Name)
+		if err != nil {
+			fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
+		}
+
+		if intro != "" {
+			attachment.Text = fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", extract.Title)
+			attachment.MarkdownIn = []string{"text"}
+		}
+
+		// larger zoom for cities and countries
+		zoom = 9
+	} else {
+		// otherwise, write address and reviews
+		attachment.Text = details.FormattedAddress + "\n" + details.Website + "\n" + details.InternationalPhoneNumber
+
+		// add rating
+		attachment.Text += fmt.Sprintf("\n%.2f", details.Rating)
+
+		// add stars
+		for i := 0; i < int(details.Rating); i++ {
+			attachment.Text += ":star:"
+		}
+
+		// add number of reviews
+		attachment.Text += fmt.Sprintf(" %d Erfahrungsberichte", len(details.Reviews))
 	}
+	attachment.ImageURL = google.StaticMapUrl(result.Geometry.Location, zoom)
 
 	params := slack.PostMessageParameters{}
 	params.AsUser = true
@@ -301,4 +323,14 @@ func PreparePhotoMessage(details maps.PlaceDetailsResult) slack.PostMessageParam
 	params.Attachments = []slack.Attachment{attachment}
 
 	return params
+}
+
+func ContainsType(types []string, t string) bool {
+	for _, v := range types {
+		if v == t {
+			return true
+		}
+	}
+
+	return false
 }
