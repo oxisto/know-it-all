@@ -12,6 +12,7 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/oxisto/know-it-all/wikipedia"
 	"googlemaps.github.io/maps"
+	"net/url"
 )
 
 type Something struct {
@@ -247,15 +248,18 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
 	}
 
+	markers := fmt.Sprintf("markers=color:red|label:|%f,%f", result.Geometry.Location.Lat,
+		result.Geometry.Location.Lng, )
+
 	attachment := slack.Attachment{
 		Color:     "#B733FF",
 		Title:     details.Name,
 		TitleLink: details.URL,
-		ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?center=%f,%f&size=640x400&zoom=9&markers=color:red|label:|%f,%f&key=%s",
+		ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?center=%f,%f&size=640x400&zoom=9&markers=%s&key=%s",
 			result.Geometry.Location.Lat,
 			result.Geometry.Location.Lng,
-			result.Geometry.Location.Lat,
-			result.Geometry.Location.Lng, state.GoogleApiKey),
+			url.PathEscape(markers),
+			state.GoogleApiKey),
 	}
 
 	if intro != "" {
