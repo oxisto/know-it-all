@@ -55,14 +55,13 @@ func doCmd(cmd *cobra.Command, args []string) {
 
 	google.InitAPI(viper.GetString(GoogleApiKey))
 
-	bot.InitBot(viper.GetString(SlackApiToken),
+	go bot.InitBot(viper.GetString(SlackApiToken),
 		viper.GetBool(SlackDirectMessagesOnly))
 
 	router := handlers.LoggingHandler(os.Stdout, rest.NewRouter())
 	err := http.ListenAndServe(viper.GetString(ListenFlag), router)
 
 	fmt.Printf("An error occured while starting the HTTP server: %s\n", err)
-
 }
 
 func main() {
