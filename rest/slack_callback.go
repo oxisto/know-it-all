@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/nlopes/slack"
 	"github.com/oxisto/know-it-all/bot"
+	"github.com/oxisto/know-it-all/google"
 )
 
 func JsonResponse(w http.ResponseWriter, r *http.Request, object interface{}, err error) {
@@ -45,7 +46,7 @@ func MorePhotos(w http.ResponseWriter, r *http.Request) {
 
 	placeID := callback.CallbackID
 
-	details, err := bot.PlaceDetail(placeID)
+	details, err := google.PlaceDetail(placeID)
 	if err != nil {
 		fmt.Printf("Could not fetch place detail for %d: %s\n", placeID, err)
 		JsonResponse(w, r, nil, err)

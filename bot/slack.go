@@ -12,7 +12,7 @@ import (
 	"github.com/nlopes/slack"
 	"github.com/oxisto/know-it-all/wikipedia"
 	"googlemaps.github.io/maps"
-	"net/url"
+	"github.com/oxisto/know-it-all/google"
 )
 
 type Something struct {
@@ -21,7 +21,6 @@ type Something struct {
 }
 
 type State struct {
-	GoogleApiKey       string
 	DirectMessagesOnly bool
 	BotId              string
 	ReplyChannel       chan Something
@@ -30,9 +29,8 @@ type State struct {
 var state *State
 var api *slack.Client
 
-func InitBot(token string, directMessagesOnly bool, apiKey string) {
+func InitBot(token string, directMessagesOnly bool) {
 	state = &State{
-		GoogleApiKey:       apiKey,
 		DirectMessagesOnly: directMessagesOnly,
 	}
 
@@ -222,9 +220,9 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		return
 	}
 
-	fmt.Printf("Trying to locate %s...\n", locationName)
+	fmt.Printf("Trying to locate %s...\n",locationName)
 
-	results, err := Geocode(locationName)
+	results, err := google.Geocode(locationName)
 	if err != nil {
 		replyWithError(something, err)
 		return
@@ -237,7 +235,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	result := results[0]
 
 	// find some more details
-	details, err := PlaceDetail(result.PlaceID)
+	details, err := google.PlaceDetail(result.PlaceID)
 	if err != nil {
 		fmt.Printf("Could not fetch place detail for %d: %s\n", result.PlaceID, err)
 		return
@@ -248,18 +246,11 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
 	}
 
-	markers := fmt.Sprintf("markers=color:red|label:|%f,%f", result.Geometry.Location.Lat,
-		result.Geometry.Location.Lng, )
-
 	attachment := slack.Attachment{
 		Color:     "#B733FF",
 		Title:     details.Name,
 		TitleLink: details.URL,
-		ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?center=%f,%f&size=640x400&zoom=9&markers=%s&key=%s",
-			result.Geometry.Location.Lat,
-			result.Geometry.Location.Lng,
-			url.PathEscape(markers),
-			state.GoogleApiKey),
+		ImageURL:  google.StaticMapUrl(result.Geometry.Location),
 	}
 
 	if intro != "" {
@@ -298,11 +289,9 @@ func PreparePhotoMessage(details maps.PlaceDetailsResult) slack.PostMessageParam
 	}
 
 	attachment := slack.Attachment{
-		Color: "#B733FF",
-		Title: fmt.Sprintf("Impressionen aus %s", details.Name),
-		ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=%s&key=%s",
-			details.Photos[rand.Int31n(int32(len(details.Photos)))].PhotoReference,
-			state.GoogleApiKey),
+		Color:      "#B733FF",
+		Title:      fmt.Sprintf("Impressionen aus %s", details.Name),
+		ImageURL:   google.PhotoUrl(details.Photos[rand.Int31n(int32(len(details.Photos)))].PhotoReference),
 		CallbackID: details.PlaceID,
 		Actions:    actions,
 	}

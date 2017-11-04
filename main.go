@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/handlers"
 	"net/http"
 	"github.com/oxisto/know-it-all/rest"
+	"github.com/oxisto/know-it-all/google"
 )
 
 const (
@@ -52,11 +53,10 @@ func initConfig() {
 func doCmd(cmd *cobra.Command, args []string) {
 	fmt.Println("Starting bot...")
 
-	bot.InitGoogleAPI(viper.GetString(GoogleApiKey))
+	google.InitAPI(viper.GetString(GoogleApiKey))
 
-	go bot.InitBot(viper.GetString(SlackApiToken),
-		viper.GetBool(SlackDirectMessagesOnly),
-		viper.GetString(GoogleApiKey))
+	bot.InitBot(viper.GetString(SlackApiToken),
+		viper.GetBool(SlackDirectMessagesOnly))
 
 	router := handlers.LoggingHandler(os.Stdout, rest.NewRouter())
 	err := http.ListenAndServe(viper.GetString(ListenFlag), router)
