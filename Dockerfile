@@ -2,8 +2,6 @@ FROM golang:1.9
 
 WORKDIR /go/src/github.com/oxisto/know-it-all
 
-RUN apt update && apt -y install unzip
-
 # install dep utility
 RUN go get -u github.com/golang/dep/cmd/dep
 

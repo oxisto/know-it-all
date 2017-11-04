@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"github.com/nlopes/slack"
+	"github.com/oxisto/know-it-all/bot"
 )
 
 func JsonResponse(w http.ResponseWriter, r *http.Request, object interface{}, err error) {
@@ -31,7 +32,7 @@ func JsonResponse(w http.ResponseWriter, r *http.Request, object interface{}, er
 	}
 }
 
-func SlackCallback(w http.ResponseWriter, r *http.Request) {
+func MorePhotos(w http.ResponseWriter, r *http.Request) {
 	// Save a copy of this request for debugging.
 	requestDump, err := httputil.DumpRequest(r, true)
 	if err != nil {
@@ -53,9 +54,16 @@ func SlackCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// create a new message
-	msg := slack.PostMessageParameters{}
-	msg.Text = "test"
+	placeID := callback.CallbackID
+
+	details, err := bot.PlaceDetail(placeID)
+	if err != nil {
+		fmt.Printf("Could not fetch place detail for %d: %s\n", placeID, err)
+		JsonResponse(w, r, nil, err)
+		return
+	}
+
+	msg := bot.PreparePhotoMessage(details)
 
 	JsonResponse(w, r, msg, nil)
 }

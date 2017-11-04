@@ -11,6 +11,7 @@ import (
 
 	"github.com/nlopes/slack"
 	"github.com/oxisto/know-it-all/wikipedia"
+	"googlemaps.github.io/maps"
 )
 
 type Something struct {
@@ -269,29 +270,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	api.PostMessage(something.Channel, "", params)
 
 	if len(details.Photos) > 0 {
-		actions := []slack.AttachmentAction{
-			{
-				Name: "next",
-				Text: "Nächstes Bild",
-				Type: "button",
-			},
-		}
-
-		attachment = slack.Attachment{
-			Color: "#B733FF",
-			Title: fmt.Sprintf("Impressionen aus %s", details.Name),
-			ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=%s&key=%s",
-				details.Photos[rand.Int31n(int32(len(details.Photos)))].PhotoReference,
-				state.GoogleApiKey),
-			CallbackID: "test",
-			Actions: actions,
-		}
-
-		params := slack.PostMessageParameters{}
-		params.AsUser = true
-		params.Attachments = []slack.Attachment{attachment}
-
-		api.PostMessage(something.Channel, "", params)
+		api.PostMessage(something.Channel, "", PreparePhotoMessage(details))
 	}
 }
 
@@ -303,4 +282,30 @@ func replyWithError(something Something, err error) {
 	if err := api.AddReaction("question", itemRef); err != nil {
 		fmt.Printf("An error occured while adding the reaction: %s\n", err)
 	}
+}
+
+func PreparePhotoMessage(details maps.PlaceDetailsResult) slack.PostMessageParameters {
+	actions := []slack.AttachmentAction{
+		{
+			Name: "more",
+			Text: "Weitere Bilder",
+			Type: "button",
+		},
+	}
+
+	attachment := slack.Attachment{
+		Color: "#B733FF",
+		Title: fmt.Sprintf("Impressionen aus %s", details.Name),
+		ImageURL: fmt.Sprintf("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=%s&key=%s",
+			details.Photos[rand.Int31n(int32(len(details.Photos)))].PhotoReference,
+			state.GoogleApiKey),
+		CallbackID: details.PlaceID,
+		Actions:    actions,
+	}
+
+	params := slack.PostMessageParameters{}
+	params.AsUser = true
+	params.Attachments = []slack.Attachment{attachment}
+
+	return params
 }

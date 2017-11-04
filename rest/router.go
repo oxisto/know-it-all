@@ -6,7 +6,7 @@ import (
 
 func NewRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/slack/callback", SlackCallback)
+	router.HandleFunc("/slack/photos/more", MorePhotos)
 
 	return router
 }
