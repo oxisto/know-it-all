@@ -77,9 +77,17 @@ func handleBotReply() {
 
 		tokens := TokenizeAndNormalize(something.Msg.Text)
 
-		if index := tokens.ContainsWord("wo"); index != -1 {
+		if index := tokens.ContainsTuple([]string{"wo", "ist"}); index != -1 {
 			locationCommand(something, tokens, index)
-		} else if index := tokens.ContainsWord("was"); index != -1 {
+		} else if index := tokens.ContainsTuple([]string{"wo", "sind"}); index != -1 {
+			locationCommand(something, tokens, index)
+		} else if index := tokens.ContainsTuple([]string{"wo", "liegt"}); index != -1 {
+			locationCommand(something, tokens, index)
+		} else if index := tokens.ContainsTuple([]string{"wo", "liegen"}); index != -1 {
+			locationCommand(something, tokens, index)
+		} else if index := tokens.ContainsTuple([]string{"was", "ist"}); index != -1 {
+			lookupCommand(something, tokens, index)
+		} else if index := tokens.ContainsTuple([]string{"was", "sind"}); index != -1 {
 			lookupCommand(something, tokens, index)
 		}
 	}
@@ -91,7 +99,7 @@ type InvertedIndex map[string][]int
 
 func TokenizeAndNormalize(message string) Tokens {
 	marks := []string{",", ".", "!", ":", "?"}
-	fillerWords := []string{"eigentlich", "ist", "bitte", "danke", "sind", "der", "die", "das", "ein", "denn"}
+	fillerWords := []string{"eigentlich", "bitte", "danke", "der", "die", "das", "ein", "denn"}
 
 	message = strings.ToLower(message)
 
@@ -135,6 +143,19 @@ func (tokens Tokens) BuildInvertedIndex() InvertedIndex {
 	return invertedIndex
 }
 
+func (tokens Tokens) ContainsTuple(words []string) (index int) {
+	index = -1
+	for i, w := range tokens {
+		if w == words[0] {
+			if tokens[i+1] != "" && tokens[i+1] == words[1] {
+				index = i
+			}
+		}
+	}
+
+	return index
+}
+
 func (tokens Tokens) ContainsWord(word string) (index int) {
 	index = -1
 	for i, w := range tokens {
@@ -155,7 +176,7 @@ func (tokens Tokens) Reassemble() string {
 func lookupCommand(something Something, tokens Tokens, index int) {
 	fmt.Println("Triggering lookup command...")
 
-	thing := tokens[index+1:].Reassemble()
+	thing := tokens[index+2:].Reassemble()
 
 	if thing == "" {
 		// just ignore it
@@ -169,11 +190,16 @@ func lookupCommand(something Something, tokens Tokens, index int) {
 		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", thing, err)
 	}
 
+	if intro == "" {
+		replyWithError(something, errors.New(fmt.Sprintf("Could not find %s", thing)))
+		return
+	}
+
 	attachment := slack.Attachment{
-		Color:     "#B733FF",
-		Title:     extract.Title,
-		TitleLink: fmt.Sprintf("https://de.wikipedia.org/wiki/%s", extract.Title),
-		Text: fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", extract.Title),
+		Color:      "#B733FF",
+		Title:      extract.Title,
+		TitleLink:  fmt.Sprintf("https://de.wikipedia.org/wiki/%s", extract.Title),
+		Text:       fmt.Sprintf("%s <%s/%s|_Wikipedia_>", intro, "https://de.wikipedia.org/wiki", extract.Title),
 		MarkdownIn: []string{"text"},
 	}
 
@@ -187,7 +213,7 @@ func lookupCommand(something Something, tokens Tokens, index int) {
 func locationCommand(something Something, tokens Tokens, index int) {
 	fmt.Println("Triggering location command...")
 
-	locationName := tokens[index+1:].Reassemble()
+	locationName := tokens[index+2:].Reassemble()
 
 	if locationName == "" {
 		// just ignore it

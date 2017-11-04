@@ -9,13 +9,18 @@ import (
 	"github.com/oxisto/know-it-all/bot"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/gorilla/handlers"
+	"net/http"
+	"github.com/oxisto/know-it-all/rest"
 )
 
 const (
 	SlackApiToken           = "slack-api-token"
 	SlackDirectMessagesOnly = "slack-dm-only"
 	GoogleApiKey            = "google-api-key"
+	ListenFlag              = "listen"
 
+	DefaultListen                  = ":4300"
 	DefaultSlackDirectMessagesOnly = false
 )
 
@@ -29,9 +34,11 @@ var botCmd = &cobra.Command{
 func init() {
 	cobra.OnInitialize(initConfig)
 
+	botCmd.Flags().String(ListenFlag, DefaultListen, "Host and port to listen to")
 	botCmd.Flags().String(SlackApiToken, "", "The token for Slack integration")
 	botCmd.Flags().String(GoogleApiKey, "", "The Google API key")
 	botCmd.Flags().Bool(SlackDirectMessagesOnly, DefaultSlackDirectMessagesOnly, "Should the bot interact with direct messages only?")
+	viper.BindPFlag(ListenFlag, botCmd.Flags().Lookup(ListenFlag))
 	viper.BindPFlag(SlackApiToken, botCmd.Flags().Lookup(SlackApiToken))
 	viper.BindPFlag(GoogleApiKey, botCmd.Flags().Lookup(GoogleApiKey))
 	viper.BindPFlag(SlackDirectMessagesOnly, botCmd.Flags().Lookup(SlackDirectMessagesOnly))
@@ -47,9 +54,15 @@ func doCmd(cmd *cobra.Command, args []string) {
 
 	bot.InitGoogleAPI(viper.GetString(GoogleApiKey))
 
-	bot.InitBot(viper.GetString(SlackApiToken),
+	go bot.InitBot(viper.GetString(SlackApiToken),
 		viper.GetBool(SlackDirectMessagesOnly),
 		viper.GetString(GoogleApiKey))
+
+	router := handlers.LoggingHandler(os.Stdout, rest.NewRouter())
+	err := http.ListenAndServe(viper.GetString(ListenFlag), router)
+
+	fmt.Printf("An error occured while starting the HTTP server: %s\n", err)
+
 }
 
 func main() {
