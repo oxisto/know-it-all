@@ -6,6 +6,7 @@ import (
 	"github.com/oxisto/know-it-all/bot"
 	"github.com/nlopes/slack"
 	"strconv"
+	time "time"
 )
 
 var tsClient *ts3.Client
@@ -22,7 +23,7 @@ func Init(address string, username string, password string) {
 
 	users = make(map[int]string)
 
-	fmt.Printf("Trying to connect to: %s\n", address)
+	fmt.Printf("Trying to connect to TS server %s...\n", address)
 
 	tsClient, err = ts3.NewClient(address)
 	if err != nil {
@@ -30,16 +31,34 @@ func Init(address string, username string, password string) {
 		return
 	}
 
-	fmt.Printf("Logging in as %s...\n", username)
+	fmt.Printf("Logging into TS server as %s...\n", username)
 
 	_, err = tsClient.Exec(ts3.Login(username, password))
 	if err != nil {
 		fmt.Printf("Could not login to TS server: %v\n", err)
 		return
 	}
+
+	fmt.Printf("Connection to TS server established.\n")
 }
 
 func ListenForEvents() {
+	// keep alive
+	ticker := time.NewTicker(5 * time.Minute)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <- ticker.C:
+				// do stuff
+				tsClient.ExecString("")
+			case <- quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	tsClient.NotifyHandler(NotifyHandler)
 	tsClient.ExecString("use 1")
 	tsClient.ExecString("servernotifyregister event=server")
