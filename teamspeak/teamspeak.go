@@ -15,13 +15,22 @@ var users map[int]string
 func Init(address string, username string, password string) {
 	var err error
 
+	if address == "" || username == "" || password == "" {
+		fmt.Println("Please supply ts server address, username and password!")
+		return
+	}
+
 	users = make(map[int]string)
+
+	fmt.Printf("Trying to connect to: %s\n", address)
 
 	tsClient, err = ts3.NewClient(address)
 	if err != nil {
 		fmt.Printf("Could not establish connection to TS server %s. TS3 functionality not available: %v\n", address, err)
 		return
 	}
+
+	fmt.Printf("Logging in as %s...\n", username)
 
 	_, err = tsClient.Exec(ts3.Login(username, password))
 	if err != nil {
