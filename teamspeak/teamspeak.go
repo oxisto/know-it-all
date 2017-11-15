@@ -51,7 +51,19 @@ func ListenForEvents() {
 			select {
 			case <- ticker.C:
 				// do stuff
-				tsClient.ExecString("")
+				resp, err := tsClient.Exec(ts3.ClientList())
+				if err != nil {
+					fmt.Printf("Updating client list...")
+					for _, client := range resp.Params {
+						clientID, err := strconv.Atoi(client["clid"])
+						if err != nil {
+							fmt.Printf("Could not parse clid %s: %v\n", clientID, err)
+							continue
+						}
+						users[clientID] = client["client_nickname"]
+					}
+				}
+				fmt.Printf("%v", resp)
 			case <- quit:
 				ticker.Stop()
 				return
