@@ -16,6 +16,21 @@ spec:
     spec:
       containers:
       - env:
+        - name: TS3_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: know-it-all-secret
+              key: ts3-server
+        - name: TS3_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: know-it-all-secret
+              key: ts3-username
+        - name: TS3_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: know-it-all-secret
+              key: ts3-password
         - name: SLACK_API_TOKEN
           valueFrom:
             secretKeyRef:

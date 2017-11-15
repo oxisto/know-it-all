@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/Darfk/ts3"
+  packages = ["."]
+  revision = "32e6bdd46a2dd1c8e86cba7a1ccff49995bf2300"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -130,6 +136,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3c60ac1992a8021970eb359e3fa10143b3aae462be3b5a8541d3f21e4cbd5acf"
+  inputs-digest = "5b002106e3e5fc95061b480a6e43fa7d6eea58dffaa8a5eeb1c1e9cd3bba42d7"
   solver-name = "gps-cdcl"
   solver-version = 1
