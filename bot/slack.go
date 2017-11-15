@@ -301,6 +301,10 @@ func replyWithError(something Something, err error) {
 	}
 }
 
+func SendMessage(channel string, text string, params slack.PostMessageParameters) {
+	api.PostMessage(channel, text, params)
+}
+
 func PreparePhotoMessage(details maps.PlaceDetailsResult) slack.PostMessageParameters {
 	actions := []slack.AttachmentAction{
 		{

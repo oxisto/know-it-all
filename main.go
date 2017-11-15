@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"github.com/oxisto/know-it-all/rest"
 	"github.com/oxisto/know-it-all/google"
+	"github.com/oxisto/know-it-all/teamspeak"
 )
 
 const (
@@ -20,6 +21,9 @@ const (
 	SlackDirectMessagesOnly = "slack-dm-only"
 	GoogleApiKey            = "google-api-key"
 	ListenFlag              = "listen"
+	Ts3ServerFlag           = "ts3-server"
+	Ts3Username             = "ts3-username"
+	Ts3Password             = "ts3-password"
 
 	DefaultListen                  = ":4300"
 	DefaultSlackDirectMessagesOnly = false
@@ -39,10 +43,16 @@ func init() {
 	botCmd.Flags().String(SlackApiToken, "", "The token for Slack integration")
 	botCmd.Flags().String(GoogleApiKey, "", "The Google API key")
 	botCmd.Flags().Bool(SlackDirectMessagesOnly, DefaultSlackDirectMessagesOnly, "Should the bot interact with direct messages only?")
+	botCmd.Flags().String(Ts3ServerFlag, "", "The TS3 server")
+	botCmd.Flags().String(Ts3Username, "", "The TS3 username")
+	botCmd.Flags().String(Ts3Password, "", "The TS3 password")
 	viper.BindPFlag(ListenFlag, botCmd.Flags().Lookup(ListenFlag))
 	viper.BindPFlag(SlackApiToken, botCmd.Flags().Lookup(SlackApiToken))
 	viper.BindPFlag(GoogleApiKey, botCmd.Flags().Lookup(GoogleApiKey))
 	viper.BindPFlag(SlackDirectMessagesOnly, botCmd.Flags().Lookup(SlackDirectMessagesOnly))
+	viper.BindPFlag(Ts3ServerFlag, botCmd.Flags().Lookup(Ts3ServerFlag))
+	viper.BindPFlag(Ts3Username, botCmd.Flags().Lookup(Ts3Username))
+	viper.BindPFlag(Ts3Password, botCmd.Flags().Lookup(Ts3Password))
 }
 
 func initConfig() {
@@ -54,6 +64,10 @@ func doCmd(cmd *cobra.Command, args []string) {
 	fmt.Println("Starting bot...")
 
 	google.InitAPI(viper.GetString(GoogleApiKey))
+
+	teamspeak.Init(viper.GetString(Ts3ServerFlag), viper.GetString(Ts3Username), viper.GetString(Ts3Password))
+
+	go teamspeak.ListenForEvents()
 
 	go bot.InitBot(viper.GetString(SlackApiToken),
 		viper.GetBool(SlackDirectMessagesOnly))
