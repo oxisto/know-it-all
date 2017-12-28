@@ -13,6 +13,7 @@ import (
 	"github.com/oxisto/know-it-all/wikipedia"
 	"googlemaps.github.io/maps"
 	"github.com/oxisto/know-it-all/google"
+	"log"
 )
 
 type Something struct {
@@ -34,7 +35,7 @@ func InitBot(token string, directMessagesOnly bool) {
 		DirectMessagesOnly: directMessagesOnly,
 	}
 
-	fmt.Println("Connecting to Slack...")
+	log.Println("Connecting to Slack...")
 
 	api = slack.New(token)
 
@@ -50,7 +51,7 @@ func InitBot(token string, directMessagesOnly bool) {
 			switch ev := msg.Data.(type) {
 			case *slack.ConnectedEvent:
 				state.BotId = ev.Info.User.ID
-				fmt.Printf("Connected to Slack as %s\n", state.BotId)
+				log.Printf("Connected to Slack as %s\n", state.BotId)
 			case *slack.MessageEvent:
 				something := Something{
 					Msg:     ev.Msg,
@@ -58,6 +59,7 @@ func InitBot(token string, directMessagesOnly bool) {
 				}
 
 				if ev.Msg.User != state.BotId && (!state.DirectMessagesOnly || state.DirectMessagesOnly && strings.HasPrefix(ev.Channel, "D")) {
+					log.Printf("Handling message from %s...\n", ev.Channel)
 					state.ReplyChannel <- something
 				}
 			case *slack.ReactionAddedEvent:
@@ -65,7 +67,7 @@ func InitBot(token string, directMessagesOnly bool) {
 			case *slack.ReactionRemovedEvent:
 				// Handle reaction removed
 			case *slack.RTMError:
-				fmt.Printf("Error: %s\n", ev.Error())
+				log.Printf("Error: %s\n", ev.Error())
 			}
 		}
 	}
@@ -174,7 +176,7 @@ func (tokens Tokens) Reassemble() string {
 }
 
 func lookupCommand(something Something, tokens Tokens, index int) {
-	fmt.Println("Triggering lookup command...")
+	log.Println("Triggering lookup command...")
 
 	thing := tokens[index+2:].Reassemble()
 
@@ -183,11 +185,11 @@ func lookupCommand(something Something, tokens Tokens, index int) {
 		return
 	}
 
-	fmt.Printf("Trying to lookup %s...\n", thing)
+	log.Printf("Trying to lookup %s...\n", thing)
 
 	intro, extract, err := wikipedia.FetchIntro(thing)
 	if err != nil {
-		fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", thing, err)
+		log.Printf("Could not fetch intro from Wikipedia for %s: %s\n", thing, err)
 	}
 
 	if intro == "" {
@@ -211,7 +213,7 @@ func lookupCommand(something Something, tokens Tokens, index int) {
 }
 
 func locationCommand(something Something, tokens Tokens, index int) {
-	fmt.Println("Triggering location command...")
+	log.Println("Triggering location command...")
 
 	locationName := tokens[index+2:].Reassemble()
 
@@ -220,7 +222,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		return
 	}
 
-	fmt.Printf("Trying to locate %s...\n", locationName)
+	log.Printf("Trying to locate %s...\n", locationName)
 
 	results, err := google.Geocode(locationName)
 	if err != nil {
@@ -237,7 +239,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	// find some more details
 	details, err := google.PlaceDetail(result.PlaceID)
 	if err != nil {
-		fmt.Printf("Could not fetch place detail for %d: %s\n", result.PlaceID, err)
+		log.Printf("Could not fetch place detail for %d: %s\n", result.PlaceID, err)
 		return
 	}
 
@@ -253,7 +255,7 @@ func locationCommand(something Something, tokens Tokens, index int) {
 		// fetch intro from Wikipedia
 		intro, extract, err := wikipedia.FetchIntro(details.Name)
 		if err != nil {
-			fmt.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
+			log.Printf("Could not fetch intro from Wikipedia for %s: %s\n", details.Name, err)
 		}
 
 		if intro != "" {
@@ -292,12 +294,12 @@ func locationCommand(something Something, tokens Tokens, index int) {
 }
 
 func replyWithError(something Something, err error) {
-	fmt.Printf("An error occured: %s\n", err)
+	log.Printf("An error occured: %s\n", err)
 
 	itemRef := slack.NewRefToMessage(something.Channel, something.Msg.Timestamp)
 
 	if err := api.AddReaction("question", itemRef); err != nil {
-		fmt.Printf("An error occured while adding the reaction: %s\n", err)
+		log.Printf("An error occured while adding the reaction: %s\n", err)
 	}
 }
 

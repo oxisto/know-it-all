@@ -14,12 +14,15 @@ import (
 	"github.com/oxisto/know-it-all/rest"
 	"github.com/oxisto/know-it-all/google"
 	"github.com/oxisto/know-it-all/teamspeak"
+	_ "github.com/oxisto/know-it-all/steam"
+	"log"
 )
 
 const (
 	SlackApiToken           = "slack-api-token"
 	SlackDirectMessagesOnly = "slack-dm-only"
 	GoogleApiKey            = "google-api-key"
+	SteamApiKey             = "steam-api-key"
 	ListenFlag              = "listen"
 	Ts3ServerFlag           = "ts3-server"
 	Ts3Username             = "ts3-username"
@@ -42,6 +45,7 @@ func init() {
 	botCmd.Flags().String(ListenFlag, DefaultListen, "Host and port to listen to")
 	botCmd.Flags().String(SlackApiToken, "", "The token for Slack integration")
 	botCmd.Flags().String(GoogleApiKey, "", "The Google API key")
+	botCmd.Flags().String(SteamApiKey, "", "The Steam API key")
 	botCmd.Flags().Bool(SlackDirectMessagesOnly, DefaultSlackDirectMessagesOnly, "Should the bot interact with direct messages only?")
 	botCmd.Flags().String(Ts3ServerFlag, "", "The TS3 server")
 	botCmd.Flags().String(Ts3Username, "", "The TS3 username")
@@ -49,6 +53,7 @@ func init() {
 	viper.BindPFlag(ListenFlag, botCmd.Flags().Lookup(ListenFlag))
 	viper.BindPFlag(SlackApiToken, botCmd.Flags().Lookup(SlackApiToken))
 	viper.BindPFlag(GoogleApiKey, botCmd.Flags().Lookup(GoogleApiKey))
+	viper.BindPFlag(SteamApiKey, botCmd.Flags().Lookup(SteamApiKey))
 	viper.BindPFlag(SlackDirectMessagesOnly, botCmd.Flags().Lookup(SlackDirectMessagesOnly))
 	viper.BindPFlag(Ts3ServerFlag, botCmd.Flags().Lookup(Ts3ServerFlag))
 	viper.BindPFlag(Ts3Username, botCmd.Flags().Lookup(Ts3Username))
@@ -61,26 +66,31 @@ func initConfig() {
 }
 
 func doCmd(cmd *cobra.Command, args []string) {
-	fmt.Println("Starting bot...")
+	log.Println("Starting bot...")
 
 	google.InitAPI(viper.GetString(GoogleApiKey))
 
-	teamspeak.Init(viper.GetString(Ts3ServerFlag), viper.GetString(Ts3Username), viper.GetString(Ts3Password))
+	if viper.GetString(Ts3ServerFlag) != "" {
+		teamspeak.Init(viper.GetString(Ts3ServerFlag), viper.GetString(Ts3Username), viper.GetString(Ts3Password))
+		go teamspeak.ListenForEvents()
+	}
 
-	go teamspeak.ListenForEvents()
+	//steam.Init(viper.GetString(SteamApiKey))
+	//go steam.WatchForPlayers()
 
-	go bot.InitBot(viper.GetString(SlackApiToken),
-		viper.GetBool(SlackDirectMessagesOnly))
+	go bot.InitBot(viper.GetString(SlackApiToken), viper.GetBool(SlackDirectMessagesOnly))
 
 	router := handlers.LoggingHandler(os.Stdout, rest.NewRouter())
 	err := http.ListenAndServe(viper.GetString(ListenFlag), router)
 
-	fmt.Printf("An error occured while starting the HTTP server: %s\n", err)
+	log.Printf("An error occured while starting the HTTP server: %s\n", err)
 }
 
 func main() {
+	log.SetOutput(os.Stdout)
+
 	if err := botCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }
