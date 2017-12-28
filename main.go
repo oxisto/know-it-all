@@ -13,8 +13,8 @@ import (
 	"github.com/oxisto/know-it-all/rest"
 	"github.com/oxisto/know-it-all/google"
 	"github.com/oxisto/know-it-all/teamspeak"
-	_ "github.com/oxisto/know-it-all/steam"
 	"log"
+	"github.com/oxisto/know-it-all/steam"
 )
 
 const (
@@ -74,8 +74,8 @@ func doCmd(cmd *cobra.Command, args []string) {
 		go teamspeak.ListenForEvents()
 	}
 
-	//steam.Init(viper.GetString(SteamApiKey))
-	//go steam.WatchForPlayers()
+	steam.Init(viper.GetString(SteamApiKey))
+	go steam.WatchForPlayers()
 
 	go bot.InitBot(viper.GetString(SlackApiToken), viper.GetBool(SlackDirectMessagesOnly))
 

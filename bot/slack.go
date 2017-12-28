@@ -39,10 +39,12 @@ func InitBot(token string, directMessagesOnly bool) {
 
 	api = slack.New(token)
 
+	api.SetDebug(true)
+
 	state.ReplyChannel = make(chan Something)
 	go handleBotReply()
 
-	rtm := api.NewRTM()
+	/*rtm := api.NewRTM()
 	go rtm.ManageConnection()
 
 	for {
@@ -70,7 +72,7 @@ func InitBot(token string, directMessagesOnly bool) {
 				log.Printf("Error: %s\n", ev.Error())
 			}
 		}
-	}
+	}*/
 }
 
 func handleBotReply() {

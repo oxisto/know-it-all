@@ -1,30 +1,39 @@
 package steam
 
 import (
-	"github.com/oxisto/go-steamwebapi/api"
-	"fmt"
-	"github.com/oxisto/go-steamwebapi/structs"
-	"github.com/oxisto/know-it-all/bot"
+	"github.com/oxisto/go-steamwebapi"
 	"github.com/nlopes/slack"
 	"time"
 	"log"
+	"fmt"
+	"github.com/oxisto/know-it-all/bot"
 )
 
-var currentPlayers []structs.Player
+var currentPlayers []steamwebapi.Player
 var apiKey string
+
+var games map[string]steamwebapi.Game
 
 func Init(key string) {
 	apiKey = key
+
+	games = make(map[string]steamwebapi.Game)
 }
 
 func WatchForPlayers() {
-	for ; ; {
-		players, err := api.FetchPlayerSummaries(apiKey, []string{"76561197962272442"})
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+
+		response, err := steamwebapi.GetPlayerSummaries(apiKey, []string{"76561197962272442"})
 
 		if err != nil {
 			log.Printf("Error while fetching player summaries from Steam: %s\n", err.Error())
 			continue
 		}
+
+		players := response.Response.Players
 
 		if currentPlayers == nil {
 			currentPlayers = players
@@ -41,7 +50,7 @@ func WatchForPlayers() {
 					if player.GameId != currentPlayer.GameId {
 						log.Printf("Detected change for player %s\n", player.PersonaName)
 						if player.GameId == "" {
-							OnPlayerStoppedGame(player)
+							OnPlayerStoppedGame(currentPlayer)
 						} else {
 							OnPlayerStartedGame(player)
 						}
@@ -50,26 +59,87 @@ func WatchForPlayers() {
 			}
 		}
 
-		time.Sleep(60 * time.Second)
+		currentPlayers = players
 	}
 }
 
-func OnPlayerStartedGame(player structs.Player) {
+func OnPlayerStartedGame(player steamwebapi.Player) {
 	// send to Slack
 	params := slack.PostMessageParameters{}
-	params.AsUser = true
+	params.AsUser = false
+	params.Username = player.PersonaName
+	params.IconURL = player.Avatar
+	params.Attachments = []slack.Attachment{}
+	//params.IconEmoji = ":video_game:"
 
-	log.Printf("%s is now playing %d\n", player.PersonaName, player.GameId)
+	// try to find the game
+	game := GetGame(player.GameId)
 
-	bot.SendMessage("oxisto", fmt.Sprintf("%s is now playing %d", player.PersonaName, player.GameId), params)
+	text := fmt.Sprintf("%s is now playing %s.", player.PersonaName, game.GameName)
+
+	if resp, err := steamwebapi.GetPlayerAchievements(apiKey, player.GameId, player.SteamId); err == nil {
+		// is there an unlocked achievement?
+		if unlockedAchievement := resp.GetLatestUnlockedAchievement(); unlockedAchievement.UnlockTime != 0 {
+			// try to find it
+			if achievement := game.FindAchievement(unlockedAchievement.ApiName); achievement != nil {
+				attachment := slack.Attachment{
+					Color:    "#B733FF",
+					Title:    fmt.Sprintf("Last Unlocked Achievement: %s", achievement.DisplayName),
+					Text:     achievement.Description,
+					ImageURL: achievement.Icon}
+
+				params.Attachments = append(params.Attachments, attachment)
+			}
+		}
+	}
+
+	// find achievements
+	if resp, err := steamwebapi.GetUserStatsForGame(apiKey, player.GameId, player.SteamId); err == nil {
+		// special case for PAYDAY 2
+		if player.GameId == "218620" {
+			playerLevel := resp.GetStat("player_level")
+			tankKillsGreen := resp.GetStat("enemy_kills_tank_green")
+			tankKillsBlack := resp.GetStat("enemy_kills_tank_black")
+
+			attachment := slack.Attachment{
+				Color: "#B733FF",
+				Title: "PAYDAY 2 Stats",
+				Text:  fmt.Sprintf("Player Level: %d\nBulldoozer (green) Kills: %d\nBulldoozer (black) Kills: %d", playerLevel.Value, tankKillsGreen.Value, tankKillsBlack.Value)}
+
+			params.Attachments = append(params.Attachments, attachment)
+		}
+	}
+
+	log.Printf("%s\n", text)
+
+	bot.SendMessage("#general", text, params)
 }
 
-func OnPlayerStoppedGame(player structs.Player) {
+func OnPlayerStoppedGame(player steamwebapi.Player) {
 	// send to Slack
 	params := slack.PostMessageParameters{}
-	params.AsUser = true
+	params.AsUser = false
+	params.Username = player.PersonaName
+	params.IconURL = player.Avatar
 
-	log.Printf("%s stopped playing %d\n", player.PersonaName, player.GameId)
+	// try to find the game
+	game := GetGame(player.GameId)
 
-	bot.SendMessage("oxisto", fmt.Sprintf("%s stopped playing %d", player.PersonaName, player.GameId), params)
+	text := fmt.Sprintf("%s stopped playing %s.", player.PersonaName, game.GameName)
+
+	log.Printf("%s\n", text)
+
+	bot.SendMessage("#general", text, params)
+}
+
+func GetGame(appID string) steamwebapi.Game {
+	if _, exists := games[appID]; !exists {
+		log.Printf("Trying to fetch game %s from Steam\n", appID)
+		// try to fetch game info
+		if response, err := steamwebapi.GetSchemaForGame(apiKey, appID); err == nil {
+			games[appID] = response.Game
+		}
+	}
+
+	return games[appID]
 }
