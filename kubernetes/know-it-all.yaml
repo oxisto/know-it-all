@@ -41,6 +41,11 @@ spec:
             secretKeyRef:
               name: know-it-all-secret
               key: google-api-key
+        - name: STEAM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: know-it-all-secret
+              key: steam-api-key
         image: oxisto/know-it-all
         imagePullPolicy: Always
         name: know-it-all

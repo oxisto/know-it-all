@@ -26,7 +26,7 @@ func WatchForPlayers() {
 	for {
 		<-ticker.C
 
-		response, err := steamwebapi.GetPlayerSummaries(apiKey, []string{"76561197962272442"})
+		response, err := steamwebapi.GetPlayerSummaries(apiKey, []string{"76561197962272442", "76561197966228499", "76561197960616970"})
 
 		if err != nil {
 			log.Printf("Error while fetching player summaries from Steam: %s\n", err.Error())
