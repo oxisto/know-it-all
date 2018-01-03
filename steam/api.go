@@ -3,6 +3,7 @@ package steam
 import (
 	"github.com/oxisto/go-steamwebapi"
 	"github.com/nlopes/slack"
+	"github.com/StefanSchroeder/Golang-Roman"
 	"time"
 	"log"
 	"fmt"
@@ -13,24 +14,26 @@ var currentPlayers []steamwebapi.Player
 var apiKey string
 
 var games map[string]steamwebapi.Game
+var apps map[string]steamwebapi.AppData
 
 func Init(key string) {
 	apiKey = key
 
 	games = make(map[string]steamwebapi.Game)
+	apps = make(map[string]steamwebapi.AppData)
 }
 
 func WatchForPlayers() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	for {
 		<-ticker.C
 
 		response, err := steamwebapi.GetPlayerSummaries(apiKey,
 			[]string{"76561197962272442",
-			"76561197966228499",
-			"76561197960616970",
-			"76561197960824521"})
+				"76561197966228499",
+				"76561197960616970",
+				"76561197960824521"})
 
 		if err != nil {
 			log.Printf("Error while fetching player summaries from Steam: %s\n", err.Error())
@@ -73,26 +76,30 @@ func OnPlayerStartedGame(player steamwebapi.Player) {
 	params.AsUser = false
 	params.Username = player.PersonaName
 	params.IconURL = player.Avatar
-	params.Attachments = []slack.Attachment{}
+	params.Markdown = true
+	//params.Attachments = []slack.Attachment{}
 	//params.IconEmoji = ":video_game:"
 
 	// try to find the game
-	game := GetGame(player.GameId)
+	game, app := GetGame(player.GameId)
 
-	text := fmt.Sprintf("%s is now playing %s.", player.PersonaName, game.GameName)
+	text := fmt.Sprintf("%s is now playing *%s* (%s). Genre: %s", player.PersonaName, app.Name, app.WebSite, app.GetGenre())
 
 	if resp, err := steamwebapi.GetPlayerAchievements(apiKey, player.GameId, player.SteamId); err == nil {
 		// is there an unlocked achievement?
 		if unlockedAchievement := resp.GetLatestUnlockedAchievement(); unlockedAchievement.UnlockTime != 0 {
 			// try to find it
 			if achievement := game.FindAchievement(unlockedAchievement.ApiName); achievement != nil {
-				attachment := slack.Attachment{
-					Color:    "#B733FF",
-					Title:    fmt.Sprintf("Last Unlocked Achievement: %s", achievement.DisplayName),
-					Text:     achievement.Description,
-					ImageURL: achievement.Icon}
-
-				params.Attachments = append(params.Attachments, attachment)
+				params.Attachments = []slack.Attachment{
+					{
+						Color:    "#00adee",
+						ImageURL: app.HeaderImage,
+					},
+					{
+						Color:    "#00adee",
+						Title:    fmt.Sprintf("Last Unlocked Achievement: %s", achievement.DisplayName),
+						Text:     achievement.Description,
+						ImageURL: achievement.Icon},}
 			}
 		}
 	}
@@ -104,11 +111,12 @@ func OnPlayerStartedGame(player steamwebapi.Player) {
 			playerLevel := resp.GetStat("player_level")
 			tankKillsGreen := resp.GetStat("enemy_kills_tank_green")
 			tankKillsBlack := resp.GetStat("enemy_kills_tank_black")
+			infamyLevel := resp.GetNumStatsWithPrefix("player_rank_") - 1
 
 			attachment := slack.Attachment{
-				Color: "#B733FF",
+				Color: "#00adee",
 				Title: "PAYDAY 2 Stats",
-				Text:  fmt.Sprintf("Player Level: %d\nBulldoozer (green) Kills: %d\nBulldoozer (black) Kills: %d", playerLevel.Value, tankKillsGreen.Value, tankKillsBlack.Value)}
+				Text:  fmt.Sprintf("Player Level: %v-%d\nBulldoozer (green) Kills: %d\nBulldoozer (black) Kills: %d", roman.Roman(infamyLevel), playerLevel.Value, tankKillsGreen.Value, tankKillsBlack.Value)}
 
 			params.Attachments = append(params.Attachments, attachment)
 		}
@@ -127,23 +135,27 @@ func OnPlayerStoppedGame(player steamwebapi.Player) {
 	params.IconURL = player.Avatar
 
 	// try to find the game
-	game := GetGame(player.GameId)
+	_, app := GetGame(player.GameId)
 
-	text := fmt.Sprintf("%s stopped playing %s.", player.PersonaName, game.GameName)
+	text := fmt.Sprintf("%s stopped playing %s.", player.PersonaName, app.Name)
 
 	log.Printf("%s\n", text)
 
 	bot.SendMessage("#general", text, params)
 }
 
-func GetGame(appID string) steamwebapi.Game {
+func GetGame(appID string) (steamwebapi.Game, steamwebapi.AppData) {
 	if _, exists := games[appID]; !exists {
 		log.Printf("Trying to fetch game %s from Steam\n", appID)
 		// try to fetch game info
 		if response, err := steamwebapi.GetSchemaForGame(apiKey, appID); err == nil {
 			games[appID] = response.Game
 		}
+
+		if response2, err := steamwebapi.GetAppDetails([]string{appID}); err == nil {
+			apps[appID] = response2[appID].Data
+		}
 	}
 
-	return games[appID]
+	return games[appID], apps[appID]
 }

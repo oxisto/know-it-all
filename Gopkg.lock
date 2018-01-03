@@ -8,6 +8,12 @@
   revision = "32e6bdd46a2dd1c8e86cba7a1ccff49995bf2300"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/StefanSchroeder/Golang-Roman"
+  packages = ["."]
+  revision = "81f07040d2feb7dad8817c9fe3d8effe9ca784c6"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -65,7 +71,7 @@
   branch = "master"
   name = "github.com/oxisto/go-steamwebapi"
   packages = ["."]
-  revision = "5a930fc016cb769efd7d2a99f5ff201a0219b1a0"
+  revision = "7d4cb2eb4c3ae679bba5d52f613782bd77aa1b21"
 
 [[projects]]
   name = "github.com/pelletier/go-toml"
@@ -142,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "926e78d24db2620568206c34d16fceb672468cc371a07ca0db3d368b10df58ce"
+  inputs-digest = "72613a5bc153210985c2e6ffe63229810b290b59023f994df652cc90a8be737c"
   solver-name = "gps-cdcl"
   solver-version = 1
