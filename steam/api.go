@@ -46,7 +46,7 @@ func WatchForPlayers() {
 			currentPlayers = players
 		}
 
-		log.Printf("Retrieved %d player(s) from steam\n", len(currentPlayers))
+		//log.Printf("Retrieved %d player(s) from steam\n", len(currentPlayers))
 
 		// check for differences
 		for _, currentPlayer := range currentPlayers {
@@ -91,10 +91,10 @@ func OnPlayerStartedGame(player steamwebapi.Player) {
 			// try to find it
 			if achievement := game.FindAchievement(unlockedAchievement.ApiName); achievement != nil {
 				params.Attachments = []slack.Attachment{
-					{
+					/*{
 						Color:    "#00adee",
 						ImageURL: app.HeaderImage,
-					},
+					},*/
 					{
 						Color:    "#00adee",
 						Title:    fmt.Sprintf("Last Unlocked Achievement: %s", achievement.DisplayName),
