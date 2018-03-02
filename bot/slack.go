@@ -284,6 +284,8 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	}
 	attachment.ImageURL = google.StaticMapUrl(result.Geometry.Location, zoom)
 
+	log.Printf("%s\n", attachement.ImageUrl)
+
 	params := slack.PostMessageParameters{}
 	params.AsUser = true
 	params.Attachments = []slack.Attachment{attachment}
