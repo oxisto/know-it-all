@@ -211,7 +211,7 @@ func lookupCommand(something Something, tokens Tokens, index int) {
 	params.AsUser = true
 	params.Attachments = []slack.Attachment{attachment}
 
-	api.PostMessage(something.Channel, "", params)
+	SendMessage(something.Channel, "", params)
 }
 
 func locationCommand(something Something, tokens Tokens, index int) {
@@ -284,16 +284,14 @@ func locationCommand(something Something, tokens Tokens, index int) {
 	}
 	attachment.ImageURL = google.StaticMapUrl(result.Geometry.Location, zoom)
 
-	log.Printf("%s\n", attachement.ImageUrl)
-
 	params := slack.PostMessageParameters{}
 	params.AsUser = true
 	params.Attachments = []slack.Attachment{attachment}
 
-	api.PostMessage(something.Channel, "", params)
+	SendMessage(something.Channel, "", params)
 
 	if len(details.Photos) > 0 {
-		api.PostMessage(something.Channel, "", PreparePhotoMessage(details))
+		SendMessage(something.Channel, "", PreparePhotoMessage(details))
 	}
 }
 
