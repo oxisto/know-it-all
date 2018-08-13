@@ -3,18 +3,21 @@ package main
 import (
 	"strings"
 
+	"github.com/oxisto/know-it-all/twitch"
+
 	"os"
 
+	"log"
+	"net/http"
+
+	"github.com/gorilla/handlers"
 	"github.com/oxisto/know-it-all/bot"
+	"github.com/oxisto/know-it-all/google"
+	"github.com/oxisto/know-it-all/rest"
+	"github.com/oxisto/know-it-all/steam"
+	"github.com/oxisto/know-it-all/teamspeak"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/gorilla/handlers"
-	"net/http"
-	"github.com/oxisto/know-it-all/rest"
-	"github.com/oxisto/know-it-all/google"
-	"github.com/oxisto/know-it-all/teamspeak"
-	"log"
-	"github.com/oxisto/know-it-all/steam"
 )
 
 const (
@@ -22,6 +25,7 @@ const (
 	SlackDirectMessagesOnly = "slack-dm-only"
 	GoogleApiKey            = "google-api-key"
 	SteamApiKey             = "steam-api-key"
+	TwitchApiKey            = "twitch-api-key"
 	ListenFlag              = "listen"
 	Ts3ServerFlag           = "ts3-server"
 	Ts3Username             = "ts3-username"
@@ -45,6 +49,7 @@ func init() {
 	botCmd.Flags().String(SlackApiToken, "", "The token for Slack integration")
 	botCmd.Flags().String(GoogleApiKey, "", "The Google API key")
 	botCmd.Flags().String(SteamApiKey, "", "The Steam API key")
+	botCmd.Flags().String(TwitchApiKey, "", "The twitch API key")
 	botCmd.Flags().Bool(SlackDirectMessagesOnly, DefaultSlackDirectMessagesOnly, "Should the bot interact with direct messages only?")
 	botCmd.Flags().String(Ts3ServerFlag, "", "The TS3 server")
 	botCmd.Flags().String(Ts3Username, "", "The TS3 username")
@@ -53,6 +58,7 @@ func init() {
 	viper.BindPFlag(SlackApiToken, botCmd.Flags().Lookup(SlackApiToken))
 	viper.BindPFlag(GoogleApiKey, botCmd.Flags().Lookup(GoogleApiKey))
 	viper.BindPFlag(SteamApiKey, botCmd.Flags().Lookup(SteamApiKey))
+	viper.BindPFlag(TwitchApiKey, botCmd.Flags().Lookup(TwitchApiKey))
 	viper.BindPFlag(SlackDirectMessagesOnly, botCmd.Flags().Lookup(SlackDirectMessagesOnly))
 	viper.BindPFlag(Ts3ServerFlag, botCmd.Flags().Lookup(Ts3ServerFlag))
 	viper.BindPFlag(Ts3Username, botCmd.Flags().Lookup(Ts3Username))
@@ -76,6 +82,9 @@ func doCmd(cmd *cobra.Command, args []string) {
 
 	steam.Init(viper.GetString(SteamApiKey))
 	go steam.WatchForPlayers()
+
+	twitch.Init(viper.GetString(TwitchApiKey))
+	go twitch.WatchForPlayers()
 
 	go bot.InitBot(viper.GetString(SlackApiToken), viper.GetBool(SlackDirectMessagesOnly))
 
