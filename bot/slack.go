@@ -39,8 +39,6 @@ func InitBot(token string, directMessagesOnly bool) {
 
 	api = slack.New(token)
 
-	api.SetDebug(true)
-
 	state.ReplyChannel = make(chan Something)
 	go handleBotReply()
 
