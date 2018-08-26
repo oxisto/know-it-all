@@ -9,11 +9,12 @@ import (
 
 	"math/rand"
 
+	"log"
+
 	"github.com/nlopes/slack"
+	"github.com/oxisto/know-it-all/google"
 	"github.com/oxisto/know-it-all/wikipedia"
 	"googlemaps.github.io/maps"
-	"github.com/oxisto/know-it-all/google"
-	"log"
 )
 
 type Something struct {
@@ -147,10 +148,17 @@ func (tokens Tokens) BuildInvertedIndex() InvertedIndex {
 
 func (tokens Tokens) ContainsTuple(words []string) (index int) {
 	index = -1
+
+	if len(words) < 2 {
+		return index
+	}
+
 	for i, w := range tokens {
 		if w == words[0] {
-			if tokens[i+1] != "" && tokens[i+1] == words[1] {
-				index = i
+			if len(tokens) > i+1 {
+				if tokens[i+1] == words[1] {
+					index = i
+				}
 			}
 		}
 	}
