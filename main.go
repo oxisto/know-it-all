@@ -3,8 +3,6 @@ package main
 import (
 	"strings"
 
-	"github.com/oxisto/know-it-all/twitch"
-
 	"os"
 
 	"log"
@@ -83,8 +81,8 @@ func doCmd(cmd *cobra.Command, args []string) {
 	steam.Init(viper.GetString(SteamApiKey))
 	go steam.WatchForPlayers()
 
-	twitch.Init(viper.GetString(TwitchApiKey))
-	go twitch.WatchForPlayers()
+	//twitch.Init(viper.GetString(TwitchApiKey))
+	//go twitch.WatchForPlayers()
 
 	go bot.InitBot(viper.GetString(SlackApiToken), viper.GetBool(SlackDirectMessagesOnly))
 
