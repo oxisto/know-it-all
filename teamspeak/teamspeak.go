@@ -53,7 +53,7 @@ func ListenForEvents() {
 			case <-ticker.C:
 				// do stuff
 				resp, err := tsClient.Exec(ts3.ClientList())
-				if err != nil {
+				if err == nil {
 					fmt.Printf("Updating client list...")
 					for _, client := range resp.Params {
 						clientID, err := strconv.Atoi(client["clid"])
@@ -65,11 +65,12 @@ func ListenForEvents() {
 					}
 					fmt.Printf("%v", resp)
 				} else {
-					fmt.Printf("An error occured while executing ts3 command: %v", err)
+					fmt.Printf("An error occured while executing ts3 command: %v\n", err)
 					quit <- struct{}{}
 				}
 			case <-quit:
 				ticker.Stop()
+				fmt.Printf("Stopping connection to TS3 server...\n")
 				return
 			}
 		}
