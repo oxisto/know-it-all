@@ -2,6 +2,7 @@ package teamspeak
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	time "time"
 
@@ -18,77 +19,78 @@ func Init(address string, username string, password string) {
 	var err error
 
 	if address == "" || username == "" || password == "" {
-		fmt.Println("Please supply ts server address, username and password!")
+		log.Println("Please supply ts server address, username and password!")
 		return
 	}
 
 	users = make(map[int]string)
 
-	fmt.Printf("Trying to connect to TS server %s...\n", address)
+	log.Printf("Trying to connect to TS server %s...\n", address)
 
 	tsClient, err = ts3.NewClient(address)
 	if err != nil {
-		fmt.Printf("Could not establish connection to TS server %s. TS3 functionality not available: %v\n", address, err)
+		log.Printf("Could not establish connection to TS server %s. TS3 functionality not available: %v\n", address, err)
 		return
 	}
 
-	fmt.Printf("Logging into TS server as %s...\n", username)
+	log.Printf("Logging into TS server as %s...\n", username)
 
 	_, err = tsClient.Exec(ts3.Login(username, password))
 	if err != nil {
-		fmt.Printf("Could not login to TS server: %v\n", err)
+		log.Printf("Could not login to TS server: %v\n", err)
 		return
 	}
 
-	fmt.Printf("Connection to TS server established.\n")
+	log.Printf("Connection to TS server established.\n")
 }
 
 func ListenForEvents() {
 	// keep alive
 	ticker := time.NewTicker(5 * time.Minute)
 	quit := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				// do stuff
-				resp, err := tsClient.Exec(ts3.ClientList())
-				if err == nil {
-					fmt.Printf("Updating client list...")
-					for _, client := range resp.Params {
-						clientID, err := strconv.Atoi(client["clid"])
-						if err != nil {
-							fmt.Printf("Could not parse clid %s: %v\n", client["clid"], err)
-							continue
-						}
-						users[clientID] = client["client_nickname"]
-					}
-					fmt.Printf("%v", resp)
-				} else {
-					fmt.Printf("An error occured while executing ts3 command: %v\n", err)
-					quit <- struct{}{}
-				}
-			case <-quit:
-				ticker.Stop()
-				fmt.Printf("Stopping connection to TS3 server...\n")
-				return
-			}
-		}
-	}()
 
 	tsClient.NotifyHandler(NotifyHandler)
 	tsClient.ExecString("use 1")
 	tsClient.ExecString("servernotifyregister event=server")
+
+	for {
+		select {
+		case <-ticker.C:
+			// do stuff
+			resp, err := tsClient.Exec(ts3.ClientList())
+			if err == nil {
+				log.Printf("Updating client list...\n")
+				for _, client := range resp.Params {
+					clientID, err := strconv.Atoi(client["clid"])
+					if err != nil {
+						log.Printf("Could not parse clid %s: %v\n", client["clid"], err)
+						continue
+					}
+					users[clientID] = client["client_nickname"]
+				}
+				log.Printf("%v\n", resp)
+			} else {
+				log.Printf("An error occured while executing ts3 command: %v\n", err)
+				quit <- struct{}{}
+			}
+		case <-quit:
+			ticker.Stop()
+			log.Printf("Stopping connection to TS3 server...\n")
+			break
+		}
+	}
+
+	log.Printf("Connection to TS server was lost.\n")
 }
 
 func NotifyHandler(n ts3.Notification) {
-	fmt.Printf("%v\n", n)
+	log.Printf("%v\n", n)
 
 	if n.Type == "notifycliententerview" {
 		nickname := n.Params[0]["client_nickname"]
 		clientID, err := strconv.Atoi(n.Params[0]["clid"])
 		if err != nil {
-			fmt.Printf("Could not parse clid %s: %v\n", clientID, err)
+			log.Printf("Could not parse clid %s: %v\n", clientID, err)
 			return
 		}
 
@@ -104,7 +106,7 @@ func NotifyHandler(n ts3.Notification) {
 	} else if n.Type == "notifyclientleftview" {
 		clientID, err := strconv.Atoi(n.Params[0]["clid"])
 		if err != nil {
-			fmt.Printf("Could not parse clid %s: %v\n", clientID, err)
+			log.Printf("Could not parse clid %s: %v\n", n.Params[0]["clid"], err)
 			return
 		}
 
