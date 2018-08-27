@@ -1,12 +1,13 @@
 package teamspeak
 
 import (
-	"github.com/Darfk/ts3"
 	"fmt"
-	"github.com/oxisto/know-it-all/bot"
-	"github.com/nlopes/slack"
 	"strconv"
 	time "time"
+
+	"github.com/Darfk/ts3"
+	"github.com/nlopes/slack"
+	"github.com/oxisto/know-it-all/bot"
 )
 
 var tsClient *ts3.Client
@@ -49,7 +50,7 @@ func ListenForEvents() {
 	go func() {
 		for {
 			select {
-			case <- ticker.C:
+			case <-ticker.C:
 				// do stuff
 				resp, err := tsClient.Exec(ts3.ClientList())
 				if err != nil {
@@ -57,14 +58,17 @@ func ListenForEvents() {
 					for _, client := range resp.Params {
 						clientID, err := strconv.Atoi(client["clid"])
 						if err != nil {
-							fmt.Printf("Could not parse clid %s: %v\n", clientID, err)
+							fmt.Printf("Could not parse clid %s: %v\n", client["clid"], err)
 							continue
 						}
 						users[clientID] = client["client_nickname"]
 					}
+					fmt.Printf("%v", resp)
+				} else {
+					fmt.Printf("An error occured while executing ts3 command: %v", err)
+					quit <- struct{}{}
 				}
-				fmt.Printf("%v", resp)
-			case <- quit:
+			case <-quit:
 				ticker.Stop()
 				return
 			}
