@@ -13,7 +13,6 @@ import (
 	"github.com/oxisto/know-it-all/google"
 	"github.com/oxisto/know-it-all/rest"
 	"github.com/oxisto/know-it-all/steam"
-	"github.com/oxisto/know-it-all/teamspeak"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -73,10 +72,10 @@ func doCmd(cmd *cobra.Command, args []string) {
 
 	google.InitAPI(viper.GetString(GoogleApiKey))
 
-	if viper.GetString(Ts3ServerFlag) != "" {
-		teamspeak.Init(viper.GetString(Ts3ServerFlag), viper.GetString(Ts3Username), viper.GetString(Ts3Password))
-		go teamspeak.ListenForEvents()
-	}
+	//if viper.GetString(Ts3ServerFlag) != "" {
+	//	teamspeak.Init(viper.GetString(Ts3ServerFlag), viper.GetString(Ts3Username), viper.GetString(Ts3Password))
+	//	go teamspeak.ListenForEvents()
+	//}
 
 	steam.Init(viper.GetString(SteamApiKey))
 	go steam.WatchForPlayers()
