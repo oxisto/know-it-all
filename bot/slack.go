@@ -312,7 +312,22 @@ func replyWithError(something Something, err error) {
 }
 
 func SendMessage(channel string, text string, params slack.PostMessageParameters) {
-	api.PostMessage(channel, text, params)
+	respChannel, respTimestamp, err := api.PostMessage(channel, text, params)
+
+	if err != nil {
+		itemRef := slack.ItemRef{
+			Channel:   respChannel,
+			Timestamp: respTimestamp,
+		}
+
+		if strings.Contains(strings.ToLower(text), "gespenst") {
+			api.AddReaction("ghost", itemRef)
+		} else if strings.Contains(strings.ToLower(text), "taro") {
+			api.AddReaction("soccer", itemRef)
+		} else if strings.Contains(strings.ToLower(text), "tsubasa") {
+			api.AddReaction("soccer", itemRef)
+		}
+	}
 }
 
 func PreparePhotoMessage(details maps.PlaceDetailsResult) slack.PostMessageParameters {
