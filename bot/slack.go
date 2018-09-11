@@ -314,7 +314,7 @@ func replyWithError(something Something, err error) {
 func SendMessage(channel string, text string, params slack.PostMessageParameters) {
 	respChannel, respTimestamp, err := api.PostMessage(channel, text, params)
 
-	if err != nil {
+	if err == nil {
 		itemRef := slack.ItemRef{
 			Channel:   respChannel,
 			Timestamp: respTimestamp,
@@ -324,8 +324,10 @@ func SendMessage(channel string, text string, params slack.PostMessageParameters
 			api.AddReaction("ghost", itemRef)
 		} else if strings.Contains(strings.ToLower(text), "taro") {
 			api.AddReaction("soccer", itemRef)
+			api.AddReaction("jp", itemRef)
 		} else if strings.Contains(strings.ToLower(text), "tsubasa") {
 			api.AddReaction("soccer", itemRef)
+			api.AddReaction("jp", itemRef)
 		}
 	}
 }
